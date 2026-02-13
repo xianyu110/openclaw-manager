@@ -1,0 +1,45 @@
+{
+  "name": "openclaw-manager",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "🦞 OpenClaw Gateway Web Manager - 现代化的 OpenClaw 多 Gateway 管理界面",
+  "main": "server.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server.js",
+    "start": "concurrently \"npm run server\" \"npm run dev\""
+  },
+  "keywords": [
+    "openclaw",
+    "gateway",
+    "manager",
+    "react",
+    "tailwind",
+    "web-ui"
+  ],
+  "author": "Maynor",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xianyu110/openclaw-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xianyu110/openclaw-manager/issues"
+  },
+  "homepage": "https://github.com/xianyu110/openclaw-manager#readme",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "express": "^4.22.1",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "vite": "^5.0.8"
+  }
+}
