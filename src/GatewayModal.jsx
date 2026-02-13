@@ -9,6 +9,9 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
     modelId: '',
     customModel: '',
     useCustomModel: false,
+    customProvider: '',
+    customBaseUrl: '',
+    customApiKey: '',
     appId: '',
     appSecret: '',
     soulContent: '',
@@ -45,6 +48,9 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
           modelId: gateway.model,
           customModel: '',
           useCustomModel: false,
+          customProvider: '',
+          customBaseUrl: '',
+          customApiKey: '',
           appId: '',
           appSecret: '',
           soulContent: '',
@@ -59,6 +65,9 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
           modelId: '',
           customModel: '',
           useCustomModel: false,
+          customProvider: '',
+          customBaseUrl: '',
+          customApiKey: '',
           appId: '',
           appSecret: '',
           soulContent: '# Agent 人格设定\n\n## 角色定位\n你是一个专业的 AI 助手。\n\n## 性格特点\n- 友好、专业\n- 乐于助人\n- 思维清晰\n\n## 工作方式\n- 认真倾听用户需求\n- 提供准确的信息\n- 保持礼貌和耐心\n',
@@ -210,15 +219,47 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
               </div>
               
               {formData.useCustomModel && (
-                <input
-                  type="text"
-                  name="customModel"
-                  value={formData.customModel}
-                  onChange={handleChange}
-                  required={formData.useCustomModel}
-                  placeholder="例如: gpt-4o, claude-3-opus-20240229"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    name="customProvider"
+                    value={formData.customProvider}
+                    onChange={handleChange}
+                    required={formData.useCustomModel}
+                    placeholder="Provider 名称，例如: my-openai"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    name="customModel"
+                    value={formData.customModel}
+                    onChange={handleChange}
+                    required={formData.useCustomModel}
+                    placeholder="模型 ID，例如: gpt-4o"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    name="customBaseUrl"
+                    value={formData.customBaseUrl}
+                    onChange={handleChange}
+                    required={formData.useCustomModel}
+                    placeholder="API Base URL，例如: https://api.openai.com/v1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="password"
+                    name="customApiKey"
+                    value={formData.customApiKey}
+                    onChange={handleChange}
+                    required={formData.useCustomModel}
+                    placeholder="API Key"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-600">
+                    💡 将创建新的 model provider 配置
+                  </p>
+                </div>
               )}
             </div>
             <p className="mt-1 text-xs text-gray-500">

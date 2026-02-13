@@ -320,6 +320,9 @@ app.post('/api/gateway', async (req, res) => {
       modelId,
       customModel,
       useCustomModel,
+      customProvider,
+      customBaseUrl,
+      customApiKey,
       appId, 
       appSecret,
       soulContent
@@ -331,7 +334,16 @@ app.post('/api/gateway', async (req, res) => {
     }
     
     // 确定使用的模型
-    const finalModel = useCustomModel ? customModel : modelId
+    let finalModel
+    if (useCustomModel) {
+      if (!customProvider || !customModel || !customBaseUrl || !customApiKey) {
+        return res.status(400).json({ error: '自定义模型需要填写 Provider、模型 ID、Base URL 和 API Key' })
+      }
+      finalModel = `${customProvider}/${customModel}`
+    } else {
+      finalModel = modelId
+    }
+    
     if (!finalModel) {
       return res.status(400).json({ error: '请选择或输入模型' })
     }
@@ -365,7 +377,42 @@ app.post('/api/gateway', async (req, res) => {
       baseConfig = {
         gateway: { port: 18789 },
         channels: { feishu: { accounts: {}, groups: {} } },
-        agents: { list: [] }
+        agents: { list: [] },
+        models: { mode: 'merge', providers: {} }
+      }
+    }
+    
+    // 如果使用自定义模型，添加 provider 配置
+    if (useCustomModel) {
+      if (!baseConfig.models) {
+        baseConfig.models = { mode: 'merge', providers: {} }
+      }
+      if (!baseConfig.models.providers) {
+        baseConfig.models.providers = {}
+      }
+      
+      // 添加自定义 provider
+      baseConfig.models.providers[customProvider] = {
+        baseUrl: customBaseUrl,
+        apiKey: customApiKey,
+        auth: 'api-key',
+        api: 'openai-completions',
+        models: [
+          {
+            id: customModel,
+            name: customModel,
+            reasoning: false,
+            input: ['text'],
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0
+            },
+            contextWindow: 128000,
+            maxTokens: 8192
+          }
+        ]
       }
     }
     
