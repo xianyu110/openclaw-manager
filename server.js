@@ -498,6 +498,16 @@ app.put('/api/gateway/:serviceId', async (req, res) => {
     const configContent = await fs.readFile(configPath, 'utf-8')
     const config = JSON.parse(configContent)
     
+    // 确保必要的配置结构存在
+    if (!config.gateway) config.gateway = {}
+    if (!config.models) config.models = { mode: 'merge', providers: {} }
+    if (!config.models.providers) config.models.providers = {}
+    if (!config.channels) config.channels = {}
+    if (!config.channels.feishu) config.channels.feishu = { accounts: {}, groups: {} }
+    if (!config.channels.feishu.accounts) config.channels.feishu.accounts = {}
+    if (!config.agents) config.agents = { list: [] }
+    if (!config.agents.list) config.agents.list = []
+    
     // 更新配置
     if (port) config.gateway.port = port
     
