@@ -549,14 +549,16 @@ app.put('/api/gateway/:serviceId', async (req, res) => {
           }
         ]
       }
-    } else {
+    } else if (modelId) {
       finalModel = modelId
     }
     
+    // 更新 agent 配置（只在有变化时更新）
     if (agentId || finalModel) {
+      const currentAgent = config.agents.list[0] || {}
       config.agents.list = [{
-        id: agentId || config.agents.list[0]?.id,
-        model: finalModel || config.agents.list[0]?.model
+        id: (agentId && agentId.trim()) || currentAgent.id || 'default',
+        model: finalModel || currentAgent.model || 'unknown'
       }]
     }
     
