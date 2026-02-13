@@ -484,6 +484,9 @@ app.put('/api/gateway/:serviceId', async (req, res) => {
       modelId,
       customModel,
       useCustomModel,
+      customProvider,
+      customBaseUrl,
+      customApiKey,
       appId, 
       appSecret,
       soulContent
@@ -499,7 +502,46 @@ app.put('/api/gateway/:serviceId', async (req, res) => {
     if (port) config.gateway.port = port
     
     // 确定使用的模型
-    const finalModel = useCustomModel ? customModel : modelId
+    let finalModel
+    if (useCustomModel) {
+      if (!customProvider || !customModel || !customBaseUrl || !customApiKey) {
+        return res.status(400).json({ error: '自定义模型需要填写 Provider、模型 ID、Base URL 和 API Key' })
+      }
+      finalModel = `${customProvider}/${customModel}`
+      
+      // 添加或更新自定义 provider 配置
+      if (!config.models) {
+        config.models = { mode: 'merge', providers: {} }
+      }
+      if (!config.models.providers) {
+        config.models.providers = {}
+      }
+      
+      config.models.providers[customProvider] = {
+        baseUrl: customBaseUrl,
+        apiKey: customApiKey,
+        auth: 'api-key',
+        api: 'openai-completions',
+        models: [
+          {
+            id: customModel,
+            name: customModel,
+            reasoning: false,
+            input: ['text'],
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0
+            },
+            contextWindow: 128000,
+            maxTokens: 8192
+          }
+        ]
+      }
+    } else {
+      finalModel = modelId
+    }
     
     if (agentId || finalModel) {
       config.agents.list = [{
