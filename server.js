@@ -250,6 +250,318 @@ app.get('/api/logs/:serviceId', async (req, res) => {
   }
 })
 
+// ==================== Gateway CRUD 操作 ====================
+
+// 获取单个 Gateway 配置
+app.get('/api/gateway/:serviceId', async (req, res) => {
+  try {
+    const { serviceId } = req.params
+    const configPath = `${process.env.HOME}/.openclaw-${serviceId}/openclaw.json`
+    const configContent = await fs.readFile(configPath, 'utf-8')
+    const config = JSON.parse(configContent)
+    
+    res.json({ 
+      success: true, 
+      config: config,
+      serviceId: serviceId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 获取 Gateway 的 SOUL.md 内容
+app.get('/api/gateway/:serviceId/soul', async (req, res) => {
+  try {
+    const { serviceId } = req.params
+    const configPath = `${process.env.HOME}/.openclaw-${serviceId}/openclaw.json`
+    const configContent = await fs.readFile(configPath, 'utf-8')
+    const config = JSON.parse(configContent)
+    
+    const agentId = config.agents?.list?.[0]?.id || 'default'
+    const soulPath = `${process.env.HOME}/.openclaw-${serviceId}/agent-configs/${agentId}/SOUL.md`
+    
+    try {
+      const soulContent = await fs.readFile(soulPath, 'utf-8')
+      res.json({ 
+        success: true, 
+        content: soulContent,
+        path: soulPath
+      })
+    } catch {
+      // 如果文件不存在，返回默认内容
+      res.json({ 
+        success: true, 
+        content: '# Agent 人格设定\n\n## 角色定位\n你是一个专业的 AI 助手。\n\n## 性格特点\n- 友好、专业\n- 乐于助人\n- 思维清晰\n\n## 工作方式\n- 认真倾听用户需求\n- 提供准确的信息\n- 保持礼貌和耐心\n',
+        path: soulPath
+      })
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 创建新的 Gateway
+app.post('/api/gateway', async (req, res) => {
+  try {
+    const { 
+      profileId, 
+      botName, 
+      port, 
+      agentId, 
+      modelId,
+      customModel,
+      useCustomModel,
+      appId, 
+      appSecret,
+      soulContent
+    } = req.body
+    
+    // 验证必填字段
+    if (!profileId || !botName || !port || !agentId || !appId || !appSecret) {
+      return res.status(400).json({ error: '缺少必填字段' })
+    }
+    
+    // 确定使用的模型
+    const finalModel = useCustomModel ? customModel : modelId
+    if (!finalModel) {
+      return res.status(400).json({ error: '请选择或输入模型' })
+    }
+    
+    // 检查 profile 是否已存在
+    const profileDir = `${process.env.HOME}/.openclaw-${profileId}`
+    try {
+      await fs.access(profileDir)
+      return res.status(400).json({ error: `Profile ${profileId} 已存在` })
+    } catch {
+      // 目录不存在，继续创建
+    }
+    
+    // 检查端口是否已被占用
+    const services = await getServices()
+    if (services.some(s => s.port === port)) {
+      return res.status(400).json({ error: `端口 ${port} 已被占用` })
+    }
+    
+    // 创建 profile 目录
+    await fs.mkdir(profileDir, { recursive: true })
+    
+    // 读取默认配置模板（从 ~/.openclaw/ 或创建基础配置）
+    let baseConfig = {}
+    try {
+      const defaultConfigPath = `${process.env.HOME}/.openclaw/openclaw.json`
+      const defaultContent = await fs.readFile(defaultConfigPath, 'utf-8')
+      baseConfig = JSON.parse(defaultContent)
+    } catch {
+      // 如果没有默认配置，使用基础模板
+      baseConfig = {
+        gateway: { port: 18789 },
+        channels: { feishu: { accounts: {}, groups: {} } },
+        agents: { list: [] }
+      }
+    }
+    
+    // 修改配置
+    const newConfig = {
+      ...baseConfig,
+      gateway: {
+        ...baseConfig.gateway,
+        port: port
+      },
+      channels: {
+        ...baseConfig.channels,
+        feishu: {
+          ...baseConfig.channels?.feishu,
+          accounts: {
+            [profileId]: {
+              appId: appId,
+              appSecret: appSecret,
+              botName: botName,
+              enabled: true
+            }
+          },
+          groups: {}
+        }
+      },
+      agents: {
+        ...baseConfig.agents,
+        list: [{
+          id: agentId,
+          model: finalModel
+        }]
+      }
+    }
+    
+    // 写入配置文件
+    const configPath = path.join(profileDir, 'openclaw.json')
+    await fs.writeFile(configPath, JSON.stringify(newConfig, null, 2))
+    
+    // 创建 agent 配置目录和 SOUL.md
+    const agentConfigDir = path.join(profileDir, 'agent-configs', agentId)
+    await fs.mkdir(agentConfigDir, { recursive: true })
+    
+    const soulPath = path.join(agentConfigDir, 'SOUL.md')
+    const finalSoulContent = soulContent || '# Agent 人格设定\n\n## 角色定位\n你是一个专业的 AI 助手。\n\n## 性格特点\n- 友好、专业\n- 乐于助人\n- 思维清晰\n\n## 工作方式\n- 认真倾听用户需求\n- 提供准确的信息\n- 保持礼貌和耐心\n'
+    await fs.writeFile(soulPath, finalSoulContent)
+    
+    // 清除缓存
+    cachedServices = []
+    lastDiscoveryTime = 0
+    
+    res.json({ 
+      success: true, 
+      message: `Gateway ${profileId} 创建成功`,
+      profileId: profileId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 更新 Gateway 配置
+app.put('/api/gateway/:serviceId', async (req, res) => {
+  try {
+    const { serviceId } = req.params
+    const { 
+      botName, 
+      port, 
+      agentId, 
+      modelId,
+      customModel,
+      useCustomModel,
+      appId, 
+      appSecret,
+      soulContent
+    } = req.body
+    
+    const configPath = `${process.env.HOME}/.openclaw-${serviceId}/openclaw.json`
+    
+    // 读取现有配置
+    const configContent = await fs.readFile(configPath, 'utf-8')
+    const config = JSON.parse(configContent)
+    
+    // 更新配置
+    if (port) config.gateway.port = port
+    
+    // 确定使用的模型
+    const finalModel = useCustomModel ? customModel : modelId
+    
+    if (agentId || finalModel) {
+      config.agents.list = [{
+        id: agentId || config.agents.list[0]?.id,
+        model: finalModel || config.agents.list[0]?.model
+      }]
+    }
+    
+    // 更新飞书账号信息
+    const accountKey = Object.keys(config.channels.feishu.accounts)[0] || serviceId
+    if (config.channels.feishu.accounts[accountKey]) {
+      if (botName) config.channels.feishu.accounts[accountKey].botName = botName
+      if (appId) config.channels.feishu.accounts[accountKey].appId = appId
+      if (appSecret) config.channels.feishu.accounts[accountKey].appSecret = appSecret
+    }
+    
+    // 写入配置文件
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2))
+    
+    // 更新 SOUL.md
+    if (soulContent) {
+      const currentAgentId = config.agents.list[0]?.id || 'default'
+      const agentConfigDir = `${process.env.HOME}/.openclaw-${serviceId}/agent-configs/${currentAgentId}`
+      await fs.mkdir(agentConfigDir, { recursive: true })
+      
+      const soulPath = path.join(agentConfigDir, 'SOUL.md')
+      await fs.writeFile(soulPath, soulContent)
+    }
+    
+    // 清除缓存
+    cachedServices = []
+    lastDiscoveryTime = 0
+    
+    res.json({ 
+      success: true, 
+      message: `Gateway ${serviceId} 更新成功`
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 删除 Gateway
+app.delete('/api/gateway/:serviceId', async (req, res) => {
+  try {
+    const { serviceId } = req.params
+    const profileDir = `${process.env.HOME}/.openclaw-${serviceId}`
+    
+    // 先停止服务
+    try {
+      const plistFile = `${process.env.HOME}/Library/LaunchAgents/com.openclaw.${serviceId}.plist`
+      await execAsync(`launchctl unload "${plistFile}" 2>/dev/null || true`)
+      await fs.unlink(plistFile).catch(() => {})
+    } catch {
+      // 忽略停止服务的错误
+    }
+    
+    // 删除配置目录
+    await execAsync(`rm -rf "${profileDir}"`)
+    
+    // 清除缓存
+    cachedServices = []
+    lastDiscoveryTime = 0
+    
+    res.json({ 
+      success: true, 
+      message: `Gateway ${serviceId} 删除成功`
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 获取可用的 Agent 列表
+app.get('/api/agents', async (req, res) => {
+  try {
+    // 从默认配置中读取可用的 agents
+    const defaultConfigPath = `${process.env.HOME}/.openclaw/openclaw.json`
+    const configContent = await fs.readFile(defaultConfigPath, 'utf-8')
+    const config = JSON.parse(configContent)
+    
+    const agents = config.agents?.list || []
+    
+    res.json({ 
+      success: true, 
+      agents: agents
+    })
+  } catch (error) {
+    // 返回默认列表
+    res.json({ 
+      success: true, 
+      agents: [
+        { id: 'main-agent', model: 'Claude Opus 4.6' },
+        { id: 'content-agent', model: 'Claude Sonnet 4.5' },
+        { id: 'tech-agent', model: 'Claude Sonnet 4.5 Thinking' },
+      ]
+    })
+  }
+})
+
+// 获取可用的模型列表
+app.get('/api/models', async (req, res) => {
+  res.json({ 
+    success: true, 
+    models: [
+      'Claude Opus 4.6',
+      'Claude Opus 4.6 Thinking',
+      'Claude Sonnet 4.5',
+      'Claude Sonnet 4.5 Thinking',
+      'Gemini 2.5 Flash',
+      'Gemini 2.5 Pro',
+      'GPT-4o',
+      'GPT-4o-mini',
+    ]
+  })
+})
+
 app.listen(PORT, async () => {
   console.log(`🚀 OpenClaw Manager API 运行在 http://localhost:${PORT}`)
   console.log(`📡 正在自动发现 Gateway 实例...`)

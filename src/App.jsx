@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
+import GatewayModal from './GatewayModal'
 
 function App() {
-  const [services, setServices] = useState([
-    { id: 'main-assistant', name: '主助理', port: 18789, status: 'unknown', model: 'Claude Opus 4.6' },
-    { id: 'content-creator', name: '内容创作助手', port: 18790, status: 'unknown', model: 'Claude Sonnet 4.5' },
-    { id: 'tech-dev', name: '技术开发助手', port: 18791, status: 'unknown', model: 'Claude Sonnet 4.5 Thinking' },
-    { id: 'ai-news', name: 'AI资讯助手', port: 18792, status: 'unknown', model: 'Gemini 2.5 Flash' },
-  ])
+  const [services, setServices] = useState([])
   
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState('create') // 'create' or 'edit'
+  const [selectedGateway, setSelectedGateway] = useState(null)
 
   // 检查服务状态
   const checkStatus = async () => {
@@ -99,6 +98,86 @@ function App() {
     setLoading(false)
   }
 
+  // 打开创建 Gateway 模态框
+  const openCreateModal = () => {
+    setModalMode('create')
+    setSelectedGateway(null)
+    setModalOpen(true)
+  }
+
+  // 打开编辑 Gateway 模态框
+  const openEditModal = (gateway) => {
+    setModalMode('edit')
+    setSelectedGateway(gateway)
+    setModalOpen(true)
+  }
+
+  // 保存 Gateway（创建或更新）
+  const handleSaveGateway = async (formData) => {
+    setLoading(true)
+    try {
+      if (modalMode === 'create') {
+        // 创建新 Gateway
+        const response = await fetch('/api/gateway', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        })
+        const data = await response.json()
+        if (response.ok) {
+          setMessage(`✅ ${data.message}`)
+          setModalOpen(false)
+          setTimeout(checkStatus, 1000)
+        } else {
+          setMessage(`❌ ${data.error}`)
+        }
+      } else {
+        // 更新 Gateway
+        const response = await fetch(`/api/gateway/${formData.profileId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        })
+        const data = await response.json()
+        if (response.ok) {
+          setMessage(`✅ ${data.message}`)
+          setModalOpen(false)
+          setTimeout(checkStatus, 1000)
+        } else {
+          setMessage(`❌ ${data.error}`)
+        }
+      }
+    } catch (error) {
+      setMessage(`❌ 操作失败: ${error.message}`)
+    }
+    setLoading(false)
+  }
+
+  // 删除 Gateway
+  const handleDeleteGateway = async (serviceId) => {
+    if (!confirm(`确定要删除 Gateway "${serviceId}" 吗？\n\n这将删除配置文件和所有相关数据，操作不可恢复！`)) {
+      return
+    }
+    
+    setLoading(true)
+    setMessage(`正在删除 ${serviceId}...`)
+    try {
+      const response = await fetch(`/api/gateway/${serviceId}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setMessage(`✅ ${data.message}`)
+        setTimeout(checkStatus, 1000)
+      } else {
+        setMessage(`❌ ${data.error}`)
+      }
+    } catch (error) {
+      setMessage(`❌ 删除失败: ${error.message}`)
+    }
+    setLoading(false)
+  }
+
   // 页面加载时检查状态
   useEffect(() => {
     checkStatus()
@@ -124,6 +203,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Gateway 管理模态框 */}
+      <GatewayModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSaveGateway}
+        gateway={selectedGateway}
+        mode={modalMode}
+      />
+
       {/* 头部 */}
       <header className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -165,7 +253,14 @@ function App() {
         )}
 
         {/* 操作按钮 */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-5 gap-4">
+          <button
+            onClick={openCreateModal}
+            disabled={loading}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+          >
+            ➕ 新建 Gateway
+          </button>
           <button
             onClick={setupLaunchd}
             disabled={loading}
@@ -176,7 +271,7 @@ function App() {
           <button
             onClick={startAll}
             disabled={loading}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
           >
             ▶️ 启动所有
           </button>
@@ -223,11 +318,20 @@ function App() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200 flex space-x-2">
-                <button className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
-                  查看日志
+                <button 
+                  onClick={() => openEditModal(service)}
+                  className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                >
+                  ✏️ 编辑
+                </button>
+                <button 
+                  onClick={() => handleDeleteGateway(service.id)}
+                  className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                >
+                  🗑️ 删除
                 </button>
                 <button className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium">
-                  重启
+                  📝 日志
                 </button>
               </div>
             </div>
