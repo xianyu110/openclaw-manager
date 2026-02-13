@@ -84,6 +84,21 @@ function App() {
     setLoading(false)
   }
 
+  // 刷新服务发现
+  const refreshDiscovery = async () => {
+    setLoading(true)
+    setMessage('正在重新扫描 Gateway 实例...')
+    try {
+      const response = await fetch('/api/refresh-discovery', { method: 'POST' })
+      const data = await response.json()
+      setMessage(`✅ ${data.message}`)
+      setTimeout(checkStatus, 1000)
+    } catch (error) {
+      setMessage('❌ 刷新失败')
+    }
+    setLoading(false)
+  }
+
   // 页面加载时检查状态
   useEffect(() => {
     checkStatus()
@@ -117,16 +132,25 @@ function App() {
               <div className="text-4xl">🦞</div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">OpenClaw Manager</h1>
-                <p className="text-sm text-gray-600">多 Gateway 管理面板</p>
+                <p className="text-sm text-gray-600">多 Gateway 管理面板 • 自动发现实例</p>
               </div>
             </div>
-            <button
-              onClick={checkStatus}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? '刷新中...' : '刷新状态'}
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={refreshDiscovery}
+                disabled={loading}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {loading ? '扫描中...' : '🔍 重新扫描'}
+              </button>
+              <button
+                onClick={checkStatus}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {loading ? '刷新中...' : '刷新状态'}
+              </button>
+            </div>
           </div>
         </div>
       </header>
