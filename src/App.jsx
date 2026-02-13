@@ -313,7 +313,7 @@ function App() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">模型:</span>
-                  <span className="font-medium">{service.model}</span>
+                  <span className="font-medium">{typeof service.model === 'string' ? service.model : service.model?.primary || 'Unknown'}</span>
                 </div>
               </div>
 

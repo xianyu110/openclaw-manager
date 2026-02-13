@@ -37,7 +37,15 @@ async function discoverGateways() {
         // 提取信息
         const port = config.gateway?.port || 18789
         const agentId = config.agents?.list?.[0]?.id || 'unknown'
-        const modelId = config.agents?.list?.[0]?.model || 'unknown'
+        const modelConfig = config.agents?.list?.[0]?.model
+        
+        // 处理模型配置（可能是字符串或对象）
+        let modelId = 'unknown'
+        if (typeof modelConfig === 'string') {
+          modelId = modelConfig
+        } else if (modelConfig && typeof modelConfig === 'object') {
+          modelId = modelConfig.primary || modelConfig.id || 'unknown'
+        }
         
         // 提取飞书账号名称
         const accounts = config.channels?.feishu?.accounts || {}
