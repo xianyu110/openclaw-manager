@@ -207,7 +207,7 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
               >
                 <option value="">选择预设模型</option>
                 {models.map(model => (
-                  <option key={model} value={model}>{model}</option>
+                  <option key={model.id} value={model.id}>{model.name}</option>
                 ))}
               </select>
               

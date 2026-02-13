@@ -341,12 +341,18 @@ app.post('/api/gateway', async (req, res) => {
       }
       finalModel = `${customProvider}/${customModel}`
     } else {
+      // 使用预设模型，modelId 应该已经是完整的格式（如 local-antigravity/claude-opus-4-6-thinking）
       finalModel = modelId
     }
     
     if (!finalModel) {
       return res.status(400).json({ error: '请选择或输入模型' })
     }
+    
+    console.log(`📝 创建 Gateway: ${profileId}`)
+    console.log(`   模型: ${finalModel}`)
+    console.log(`   Agent: ${agentId}`)
+    console.log(`   端口: ${port}`)
     
     // 检查 profile 是否已存在
     const profileDir = `${process.env.HOME}/.openclaw-${profileId}`
@@ -451,6 +457,8 @@ app.post('/api/gateway', async (req, res) => {
     const configPath = path.join(profileDir, 'openclaw.json')
     await fs.writeFile(configPath, JSON.stringify(newConfig, null, 2))
     
+    console.log(`✅ 配置文件已创建: ${configPath}`)
+    
     // 创建 agent 配置目录和 SOUL.md
     const agentConfigDir = path.join(profileDir, 'agent-configs', agentId)
     await fs.mkdir(agentConfigDir, { recursive: true })
@@ -458,6 +466,8 @@ app.post('/api/gateway', async (req, res) => {
     const soulPath = path.join(agentConfigDir, 'SOUL.md')
     const finalSoulContent = soulContent || '# Agent 人格设定\n\n## 角色定位\n你是一个专业的 AI 助手。\n\n## 性格特点\n- 友好、专业\n- 乐于助人\n- 思维清晰\n\n## 工作方式\n- 认真倾听用户需求\n- 提供准确的信息\n- 保持礼貌和耐心\n'
     await fs.writeFile(soulPath, finalSoulContent)
+    
+    console.log(`✅ SOUL.md 已创建: ${soulPath}`)
     
     // 清除缓存
     cachedServices = []
@@ -469,6 +479,7 @@ app.post('/api/gateway', async (req, res) => {
       profileId: profileId
     })
   } catch (error) {
+    console.error('❌ 创建 Gateway 失败:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -663,14 +674,21 @@ app.get('/api/models', async (req, res) => {
   res.json({ 
     success: true, 
     models: [
-      'Claude Opus 4.6',
-      'Claude Opus 4.6 Thinking',
-      'Claude Sonnet 4.5',
-      'Claude Sonnet 4.5 Thinking',
-      'Gemini 2.5 Flash',
-      'Gemini 2.5 Pro',
-      'GPT-4o',
-      'GPT-4o-mini',
+      { id: 'local-antigravity/claude-opus-4-6-thinking', name: 'Claude Opus 4.6 Thinking' },
+      { id: 'local-antigravity/claude-opus-4-5-thinking', name: 'Claude Opus 4.5 Thinking' },
+      { id: 'local-antigravity/claude-sonnet-4-5', name: 'Claude Sonnet 4.5' },
+      { id: 'local-antigravity/claude-sonnet-4-5-thinking', name: 'Claude Sonnet 4.5 Thinking' },
+      { id: 'local-antigravity/gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+      { id: 'local-antigravity/gemini-2.5-flash-thinking', name: 'Gemini 2.5 Flash Thinking' },
+      { id: 'local-antigravity/gemini-3-flash', name: 'Gemini 3 Flash' },
+      { id: 'local-antigravity/gemini-3-pro-high', name: 'Gemini 3 Pro High' },
+      { id: 'local-antigravity/gemini-3-pro-low', name: 'Gemini 3 Pro Low' },
+      { id: 'openai/gpt-4o', name: 'GPT-4o' },
+      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
+      { id: 'openai/o1', name: 'OpenAI o1' },
+      { id: 'openai/o1-mini', name: 'OpenAI o1-mini' },
+      { id: 'maynor-haiku/claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5' },
+      { id: 'hunyuan/hunyuan-turbos-latest', name: '混元 TurboS Latest' },
     ]
   })
 })
