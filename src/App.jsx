@@ -178,6 +178,73 @@ function App() {
     setLoading(false)
   }
 
+  // 启动单个 Gateway
+  const handleStartGateway = async (serviceId) => {
+    setLoading(true)
+    setMessage(`正在启动 ${serviceId}...`)
+    try {
+      const response = await fetch(`/api/start/${serviceId}`, {
+        method: 'POST'
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setMessage(`✅ ${data.message}`)
+        setTimeout(checkStatus, 2000)
+      } else {
+        setMessage(`❌ ${data.error}`)
+      }
+    } catch (error) {
+      setMessage(`❌ 启动失败: ${error.message}`)
+    }
+    setLoading(false)
+  }
+
+  // 停止单个 Gateway
+  const handleStopGateway = async (serviceId) => {
+    if (!confirm(`确定要停止 Gateway "${serviceId}" 吗？`)) {
+      return
+    }
+    
+    setLoading(true)
+    setMessage(`正在停止 ${serviceId}...`)
+    try {
+      const response = await fetch(`/api/stop/${serviceId}`, {
+        method: 'POST'
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setMessage(`✅ ${data.message}`)
+        setTimeout(checkStatus, 2000)
+      } else {
+        setMessage(`❌ ${data.error}`)
+      }
+    } catch (error) {
+      setMessage(`❌ 停止失败: ${error.message}`)
+    }
+    setLoading(false)
+  }
+
+  // 重启单个 Gateway
+  const handleRestartGateway = async (serviceId) => {
+    setLoading(true)
+    setMessage(`正在重启 ${serviceId}...`)
+    try {
+      const response = await fetch(`/api/restart/${serviceId}`, {
+        method: 'POST'
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setMessage(`✅ ${data.message}`)
+        setTimeout(checkStatus, 3000)
+      } else {
+        setMessage(`❌ ${data.error}`)
+      }
+    } catch (error) {
+      setMessage(`❌ 重启失败: ${error.message}`)
+    }
+    setLoading(false)
+  }
+
   // 页面加载时检查状态
   useEffect(() => {
     checkStatus()
@@ -317,22 +384,52 @@ function App() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200 flex space-x-2">
-                <button 
-                  onClick={() => openEditModal(service)}
-                  className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
-                >
-                  ✏️ 编辑
-                </button>
-                <button 
-                  onClick={() => handleDeleteGateway(service.id)}
-                  className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                >
-                  🗑️ 删除
-                </button>
-                <button className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium">
-                  📝 日志
-                </button>
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                {/* 第一行：编辑和删除 */}
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => openEditModal(service)}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors text-sm font-medium"
+                  >
+                    ✏️ 编辑
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteGateway(service.id)}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors text-sm font-medium"
+                  >
+                    🗑️ 删除
+                  </button>
+                </div>
+                
+                {/* 第二行：启动/停止/重启 */}
+                <div className="flex space-x-2">
+                  {service.status === 'stopped' ? (
+                    <button 
+                      onClick={() => handleStartGateway(service.id)}
+                      disabled={loading}
+                      className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 disabled:opacity-50 transition-colors text-sm font-medium"
+                    >
+                      ▶️ 启动
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleStopGateway(service.id)}
+                      disabled={loading}
+                      className="flex-1 px-3 py-2 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors text-sm font-medium"
+                    >
+                      ⏹️ 停止
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => handleRestartGateway(service.id)}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 disabled:opacity-50 transition-colors text-sm font-medium"
+                  >
+                    🔄 重启
+                  </button>
+                </div>
               </div>
             </div>
           ))}
