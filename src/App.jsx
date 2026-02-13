@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import GatewayModal from './GatewayModal'
+import LogViewer from './LogViewer'
 
 function App() {
   const [services, setServices] = useState([])
@@ -9,6 +10,8 @@ function App() {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('create') // 'create' or 'edit'
   const [selectedGateway, setSelectedGateway] = useState(null)
+  const [logViewerOpen, setLogViewerOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState(null)
 
   // 检查服务状态
   const checkStatus = async () => {
@@ -245,6 +248,12 @@ function App() {
     setLoading(false)
   }
 
+  // 打开日志查看器
+  const openLogViewer = (service) => {
+    setSelectedService(service)
+    setLogViewerOpen(true)
+  }
+
   // 页面加载时检查状态
   useEffect(() => {
     checkStatus()
@@ -277,6 +286,14 @@ function App() {
         onSave={handleSaveGateway}
         gateway={selectedGateway}
         mode={modalMode}
+      />
+
+      {/* 日志查看器 */}
+      <LogViewer
+        isOpen={logViewerOpen}
+        onClose={() => setLogViewerOpen(false)}
+        serviceId={selectedService?.id}
+        serviceName={selectedService?.name}
       />
 
       {/* 头部 */}
@@ -403,7 +420,7 @@ function App() {
                   </button>
                 </div>
                 
-                {/* 第二行：启动/停止/重启 */}
+                {/* 第二行：启动/停止/重启/日志 */}
                 <div className="flex space-x-2">
                   {service.status === 'stopped' ? (
                     <button 
@@ -428,6 +445,13 @@ function App() {
                     className="flex-1 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 disabled:opacity-50 transition-colors text-sm font-medium"
                   >
                     🔄 重启
+                  </button>
+                  <button 
+                    onClick={() => openLogViewer(service)}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors text-sm font-medium"
+                  >
+                    📝 日志
                   </button>
                 </div>
               </div>
