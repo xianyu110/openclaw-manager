@@ -33,12 +33,16 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
         fetch(`/api/gateway/${gateway.id}/soul`)
           .then(r => r.json())
           .then(data => {
-            setFormData(prev => ({
-              ...prev,
-              soulContent: data.content || ''
-            }))
+            if (data.success) {
+              setFormData(prev => ({
+                ...prev,
+                soulContent: data.content || ''
+              }))
+            }
           })
-          .catch(() => {})
+          .catch(err => {
+            console.error('加载 SOUL.md 失败:', err)
+          })
         
         setFormData({
           profileId: gateway.id,
@@ -53,7 +57,7 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
           customApiKey: '',
           appId: '',
           appSecret: '',
-          soulContent: '',
+          soulContent: '加载中...',
         })
       } else {
         // 新建模式，重置表单
@@ -329,9 +333,14 @@ function GatewayModal({ isOpen, onClose, onSave, gateway, mode }) {
                   placeholder="使用 Markdown 格式定义 Agent 的人格、角色、行为方式等..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                 />
-                <p className="text-xs text-gray-500">
-                  💡 提示：使用 Markdown 格式，定义 Agent 的角色、性格、专业领域、回答风格等
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    💡 提示：使用 Markdown 格式，定义 Agent 的角色、性格、专业领域、回答风格等
+                  </p>
+                  <span className="text-xs text-gray-400">
+                    {formData.soulContent?.length || 0} 字符
+                  </span>
+                </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
                   <p className="font-medium mb-1">示例内容：</p>
                   <pre className="whitespace-pre-wrap">

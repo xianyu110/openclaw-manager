@@ -561,14 +561,18 @@ app.put('/api/gateway/:serviceId', async (req, res) => {
     // 写入配置文件
     await fs.writeFile(configPath, JSON.stringify(config, null, 2))
     
-    // 更新 SOUL.md
-    if (soulContent) {
-      const currentAgentId = config.agents.list[0]?.id || 'default'
+    // 更新 SOUL.md（即使内容为空也保存）
+    if (soulContent !== undefined) {
+      // 使用更新后的 agent ID（如果修改了）或现有的 agent ID
+      const currentAgentId = (agentId && agentId.trim()) || config.agents.list[0]?.id || 'default'
       const agentConfigDir = `${process.env.HOME}/.openclaw-${serviceId}/agent-configs/${currentAgentId}`
       await fs.mkdir(agentConfigDir, { recursive: true })
       
       const soulPath = path.join(agentConfigDir, 'SOUL.md')
-      await fs.writeFile(soulPath, soulContent)
+      await fs.writeFile(soulPath, soulContent || '# Agent 人格设定\n\n请编辑此文件定义 Agent 的人格特征。\n')
+      console.log(`✅ SOUL.md 已更新: ${soulPath}`)
+      console.log(`   Agent ID: ${currentAgentId}`)
+      console.log(`   内容长度: ${soulContent?.length || 0} 字符`)
     }
     
     // 清除缓存
